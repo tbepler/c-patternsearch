@@ -19,6 +19,11 @@ int main(){
     double ub[] = { 10, 5, 10, 10001, 2, 25, 15000, 1000000000 };
     double lb[] = { 7, -13, -149, 5, -1499, 10, 100, -48810401 };
     size_t n = 8;
+    size_t i;
+    double scale_factor[8];
+    for( i = 0 ; i < n ; ++i ){
+        scale_factor[i] = 2;
+    }
 
     double optim[n];
 
@@ -26,6 +31,7 @@ int main(){
     opts.report = stdout;
     opts.upper_bound = ub;
     opts.lower_bound = lb;
+    opts.scale_factor = scale_factor;
     //opts.mesh_scale = 5;
     //opts.max_iters = 50;
 
@@ -34,7 +40,6 @@ int main(){
     double eval = patternSearch( &quadratic, v0, optim, n, &exponent, &opts );
 
     printf( "Optimum: " );
-    size_t i;
     for( i = 0 ; i < n - 1 ; ++i ){
         printf( "%lf, ", optim[i] );
     }

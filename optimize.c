@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<math.h>
 
+#define DEFAULT_SCALE 1e-4
 
 static inline void copy( double* dest, const double* src, size_t n ){
     size_t i;
@@ -15,6 +16,7 @@ const PatternSearchOpts DEFAULT_PATTERN_SEARCH_OPTS = {
     NULL,
     NULL,
     NULL,
+    NULL,
     1e-6,
     1e-6,
     2,
@@ -22,6 +24,33 @@ const PatternSearchOpts DEFAULT_PATTERN_SEARCH_OPTS = {
     -1
 
 };
+
+static inline void calculateScaleFactor( double* scale_factor, double* lower_bound, double* upper_bound, size_t n ){
+
+    size_t i;
+    
+    if( lower_bound == NULL || upper_bound == NULL ){
+        
+        for( i = 0 ; i < n ; ++i ){
+            scale_factor[i] = 1;
+        }
+
+    }else{
+
+        double min;
+        double max;
+        for( i = 0 ; i < n ; ++i ){
+            min = lower_bound[i];
+            max = upper_bound[i];
+            if( isfinite( min ) && isfinite( max ) ){
+                scale_factor[i] = ( max - min ) * DEFAULT_SCALE;
+            }else{
+                scale_factor[i] = 1;
+            }
+        }
+    }
+
+}
 
 double patternSearch( double(*fnc)( const double*, unsigned long, void* ), const double* v0, double* result, unsigned long n, void* fnc_param, const PatternSearchOpts* opts ){
     
@@ -32,11 +61,19 @@ double patternSearch( double(*fnc)( const double*, unsigned long, void* ), const
     FILE* report = opts->report;
     double* upper_bound = opts->upper_bound;
     double* lower_bound = opts->lower_bound;
+    double* scale_factor = opts->scale_factor;
     double mesh_tol = opts->mesh_tol;
     double fnc_tol = opts->fnc_tol;
     double mesh_scale = opts->mesh_scale;
     double mesh_size = opts->mesh_size_init;
     size_t max_iters = opts->max_iters;
+
+    //check and intialize scale factor if null
+    double scale[n];
+    if( scale_factor == NULL ){
+        calculateScaleFactor( scale, lower_bound, upper_bound, n );
+        scale_factor = scale;
+    }
 
     double cur[n];
     copy( cur, v0, n );
@@ -80,6 +117,7 @@ double patternSearch( double(*fnc)( const double*, unsigned long, void* ), const
     double point[n];
     int reduce;
     double feval_cur;
+    double scaled_mesh;
     do{    
         reduce = 1;
         feval_cur = feval_best;
@@ -87,8 +125,15 @@ double patternSearch( double(*fnc)( const double*, unsigned long, void* ), const
         size_t i;
         //search points
         for( i = 0 ; i < n ; ++i ){
-            if( upper_bound == NULL || cur[i] + mesh_size <= upper_bound[i] ){
-                point[i] += mesh_size;
+            //check whether parameter can be skipped
+            if( scale_factor[i] == 0 || ( upper_bound != NULL && lower_bound != NULL && upper_bound[i] == lower_bound[i] ) ){
+                continue;
+            }
+            //scale mesh by the scale factor
+            scaled_mesh = mesh_size * scale_factor[i];
+            //score + direction
+            if( upper_bound == NULL || cur[i] + scaled_mesh <= upper_bound[i] ){
+                point[i] += scaled_mesh;
                 double feval = fnc( point, n, fnc_param );
                 //fprintf( stdout, "%lf, %lf\n", feval, feval_best );
                 if( feval < feval_best ){
@@ -101,8 +146,9 @@ double patternSearch( double(*fnc)( const double*, unsigned long, void* ), const
                 //restore point
                 point[i] = cur[i];
             }
-            if( lower_bound == NULL || cur[i] - mesh_size >= lower_bound[i] ){
-                point[i] -= mesh_size;
+            //score - direction
+            if( lower_bound == NULL || cur[i] - scaled_mesh >= lower_bound[i] ){
+                point[i] -= scaled_mesh;
                 double feval = fnc( point, n, fnc_param );
                 //fprintf( stdout, "%lf, %lf\n", feval, feval_best );
                 if( feval < feval_best ){

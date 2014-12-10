@@ -8,6 +8,7 @@ typedef struct PatternSearchOpts{
     FILE* report;
     double* upper_bound;
     double* lower_bound;
+    double* scale_factor;
     double mesh_tol;
     double fnc_tol;
     double mesh_scale;
