@@ -3,11 +3,12 @@
 #include<stdlib.h>
 #include<math.h>
 
-double quadratic( const double* arr, size_t n ){
+double quadratic( const double* arr, size_t n, void* params ){
+    double exponent = *( double* ) params;
     double sum = 0;
     size_t i;
     for( i = 0 ; i < n ; ++i ){
-        sum += pow( arr[i], 2 );
+        sum += pow( arr[i], exponent );
     }
     return sum;
 }
@@ -21,7 +22,16 @@ int main(){
 
     double optim[n];
 
-    double eval = patternSearch( &quadratic, v0, optim, n, ub, lb, stdout );
+    PatternSearchOpts opts = DEFAULT_PATTERN_SEARCH_OPTS;
+    opts.report = stdout;
+    opts.upper_bound = ub;
+    opts.lower_bound = lb;
+    //opts.mesh_scale = 5;
+    //opts.max_iters = 50;
+
+    double exponent = 4;
+
+    double eval = patternSearch( &quadratic, v0, optim, n, &exponent, &opts );
 
     printf( "Optimum: " );
     size_t i;

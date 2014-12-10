@@ -3,7 +3,22 @@
 
 #include<stdio.h>
 
-double patternSearch( double(*fnc)( const double*, unsigned long), const double* v0, double* result, unsigned long n, const double* upper_bound, const double* lower_bound, FILE* report );
+typedef struct PatternSearchOpts{
+
+    FILE* report;
+    double* upper_bound;
+    double* lower_bound;
+    double mesh_tol;
+    double fnc_tol;
+    double mesh_scale;
+    double mesh_size_init;
+    unsigned long max_iters;
+
+} PatternSearchOpts;
+
+const PatternSearchOpts DEFAULT_PATTERN_SEARCH_OPTS;
+
+double patternSearch( double(*fnc)( const double*, unsigned long, void*), const double* v0, double* result, unsigned long n, void* fnc_param, const PatternSearchOpts* opts );
 
 
 #endif
